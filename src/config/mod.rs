@@ -45,7 +45,7 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::Config;
+    use super::Config;
 
     #[test]
     fn test_from_env() {
