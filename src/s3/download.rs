@@ -12,7 +12,7 @@ pub trait BucketOps {
 
 struct S3Bucket {
     bucket: Bucket,
-}q
+}
 
 impl S3Bucket {
     fn new(bucket: Bucket) -> Self {

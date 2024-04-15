@@ -1,7 +1,11 @@
 
 use serde::Deserialize;
 use serde::Serialize;
+use uuid::Uuid;
 
+const NAMESPACE_UUID: Uuid = Uuid::from_bytes([
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+]);
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -41,4 +45,11 @@ pub struct Relation {
     pub source: Vec<String>,
     pub target: Vec<String>,
     pub tags: Option<Vec<Tag>>,
+}
+
+
+pub fn get_id_from_url(ingestion_id: String, url: String) -> Uuid {
+    let unique_id = ingestion_id + "/" + url.as_str();
+    let uuid = Uuid::new_v5(&NAMESPACE_UUID, unique_id.as_bytes());
+    uuid
 }

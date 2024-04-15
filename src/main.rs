@@ -1,6 +1,7 @@
 mod config;
 mod s3;
 mod domain;
+mod db;
 
 
 
