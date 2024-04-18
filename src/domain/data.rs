@@ -1,4 +1,3 @@
-
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
@@ -14,19 +13,16 @@ pub struct GraphStructure {
     pub relations: Vec<Relation>,
 }
 
-
-
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Node {
     pub name: String,
     #[serde(rename = "type")]
-    pub kind:String,
+    pub kind: String,
     pub children: Vec<Node>,
     pub tags: Option<Vec<Tag>>,
-    pub total_children:Option<i64>,
+    pub total_children: Option<i64>,
 }
-
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,7 +31,6 @@ pub struct Tag {
     pub kind: String,
     pub value: String,
 }
-
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -46,7 +41,6 @@ pub struct Relation {
     pub target: Vec<String>,
     pub tags: Option<Vec<Tag>>,
 }
-
 
 pub fn get_id_from_url(ingestion_id: String, url: String) -> Uuid {
     let unique_id = ingestion_id + "/" + url.as_str();
