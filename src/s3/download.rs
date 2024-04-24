@@ -64,7 +64,7 @@ mod tests {
             async fn get_object(&self, _path: &str) -> Result<GraphData> {
                 let data = GraphData {
                     nodes: vec![],
-                    ingestion_id: "test".to_string(),
+                    relations: vec![],
                 };
                 Ok(data)
             }

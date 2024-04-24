@@ -6,44 +6,60 @@ const NAMESPACE_UUID: Uuid = Uuid::from_bytes([
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ]);
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GraphStructure {
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct GraphData {
     pub nodes: Vec<Node>,
     pub relations: Vec<Relation>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node {
+    pub uuid: Uuid,
+    pub ingestion_id: String,
     pub name: String,
+    pub url: String,
     #[serde(rename = "type")]
-    pub kind: String,
-    pub children: Vec<Node>,
-    pub tags: Option<Vec<Tag>>,
-    pub total_children: Option<i64>,
+    pub node_type: String,
+    pub tags: Vec<(String, String)>,
+    pub relations: Vec<Relation>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Tag {
-    #[serde(rename = "type")]
-    pub kind: String,
-    pub value: String,
+impl Node {
+    pub fn new(
+        uuid: Uuid,
+        ingestion_id: String,
+        name: String,
+        url: String,
+        node_type: String,
+    ) -> Self {
+        Node {
+            uuid,
+            ingestion_id,
+            name,
+            url,
+            node_type,
+            tags: Vec::new(),
+            relations: Vec::new(),
+        }
+    }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Relation {
     #[serde(rename = "type")]
-    pub kind: String,
-    pub source: Vec<String>,
-    pub target: Vec<String>,
-    pub tags: Option<Vec<Tag>>,
+    pub rel_type: String,
+    pub outbound: bool,
+    pub target_name: String,
+    pub relates_to: String,
 }
 
-pub fn get_id_from_url(ingestion_id: String, url: String) -> Uuid {
-    let unique_id = ingestion_id + "/" + url.as_str();
-    let uuid = Uuid::new_v5(&NAMESPACE_UUID, unique_id.as_bytes());
-    uuid
+impl Relation {
+    pub fn new(rel_type: String, outbound: bool, target_name: String, relates_to: String) -> Self {
+        Relation {
+            rel_type,
+            outbound,
+            target_name,
+            relates_to,
+        }
+    }
 }
