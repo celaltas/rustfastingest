@@ -7,6 +7,7 @@ use tracing::info;
 pub struct AppConfig {
     pub host: String,
     pub port: u16,
+    pub parallel_files: usize,
     pub region: String,
     pub rust_log: String,
 }
@@ -15,7 +16,6 @@ pub struct AppConfig {
 pub struct DatabaseConfig {
     pub connection_url: String,
     pub datacenter: String,
-    pub parallel_files: usize,
     pub concurrency_limit: usize,
     pub schema_file: String,
 }

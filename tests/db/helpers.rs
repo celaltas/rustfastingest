@@ -11,7 +11,6 @@ pub fn create_test_database_config() -> DatabaseConfig {
         schema_file,
         concurrency_limit: 1,
         datacenter: "dt".to_string(),
-        parallel_files: 2,
     }
 }
 

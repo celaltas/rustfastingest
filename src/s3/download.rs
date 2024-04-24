@@ -1,13 +1,13 @@
-use crate::domain::data::GraphStructure;
+use crate::domain::data::GraphData;
 use async_trait::async_trait;
-use color_eyre::Result;
+use eyre::Result;
 use s3::{creds::Credentials, Bucket, Region};
 use std::time::{Duration, Instant};
 use tracing::info;
 
 #[async_trait]
 pub trait BucketOps {
-    async fn get_object(&self, path: &str) -> Result<GraphStructure>;
+    async fn get_object(&self, path: &str) -> Result<GraphData>;
 }
 
 struct S3Bucket {
@@ -22,9 +22,9 @@ impl S3Bucket {
 
 #[async_trait]
 impl BucketOps for S3Bucket {
-    async fn get_object(&self, key: &str) -> Result<GraphStructure> {
+    async fn get_object(&self, key: &str) -> Result<GraphData> {
         let response = self.bucket.get_object(key).await?;
-        let graph_structure: GraphStructure = serde_json::from_slice(&response.bytes())?;
+        let graph_structure: GraphData = serde_json::from_slice(&response.bytes())?;
         Ok(graph_structure)
     }
 }
@@ -38,9 +38,9 @@ pub fn create_bucket_ops(region: &str, bucket_name: &str) -> Result<Box<dyn Buck
 }
 
 pub async fn read_graph_from_s3(
-    bucket_ops: &dyn BucketOps,
+    bucket_ops: Box<dyn BucketOps>,
     object_key: &str,
-) -> Result<GraphStructure> {
+) -> Result<GraphData> {
     let now = Instant::now();
     let data = bucket_ops.get_object(object_key).await?;
     let elapsed = now.elapsed();
@@ -51,6 +51,8 @@ pub async fn read_graph_from_s3(
 
 #[cfg(test)]
 mod tests {
+    use std::{fs::File, io::Read};
+
     use super::*;
 
     #[tokio::test]
@@ -59,10 +61,10 @@ mod tests {
 
         #[async_trait]
         impl BucketOps for MockBucketOps {
-            async fn get_object(&self, _path: &str) -> Result<GraphStructure> {
-                let data = GraphStructure {
+            async fn get_object(&self, _path: &str) -> Result<GraphData> {
+                let data = GraphData {
                     nodes: vec![],
-                    relations: vec![],
+                    ingestion_id: "test".to_string(),
                 };
                 Ok(data)
             }
@@ -70,8 +72,32 @@ mod tests {
 
         let mock_bucket_ops = MockBucketOps {};
         let object_key = "test.json";
-        let result = read_graph_from_s3(&mock_bucket_ops, object_key).await;
-
+        let result = read_graph_from_s3(Box::new(mock_bucket_ops), object_key).await;
         assert!(result.is_ok());
+    }
+    #[tokio::test]
+    async fn test_read_graph_from_file() {
+        struct MockBucketOps {}
+
+        #[async_trait]
+        impl BucketOps for MockBucketOps {
+            async fn get_object(&self, path: &str) -> Result<GraphData> {
+                let current_dir = std::env::current_dir()?;
+                let example_file_path = current_dir.join(format!("tests/data/{}", path));
+                println!("{:?}", example_file_path);
+                let mut file = File::open(example_file_path)?;
+                let mut buffer = Vec::new();
+                file.read_to_end(&mut buffer)?;
+                let data: GraphData = serde_json::from_slice(&buffer)?;
+                Ok(data)
+            }
+        }
+
+        let mock_bucket_ops = MockBucketOps {};
+        let object_key = "example.json";
+        let result = read_graph_from_s3(Box::new(mock_bucket_ops), object_key).await;
+        assert!(result.is_ok());
+        let data = result.unwrap();
+        assert_eq!(data.nodes.len(), 2);
     }
 }

@@ -14,6 +14,7 @@ const GET_NODE_BY_ID_WITH_RELATIONS_QUERY: &str = "SELECT id, direction, relatio
 const GET_NODE_BY_ID_AND_DIRECTION_QUERY: &str = "SELECT id, direction, relation, relates_to, name, item_type FROM graph.nodes WHERE id = ? AND direction IN ('', ?)";
 const GET_NODE_BY_ID_DIRECTION_AND_RELATION_QUERY: &str = "SELECT id, direction, relation, relates_to, name, item_type FROM graph.nodes WHERE id = ? AND direction IN ('', ?) AND relation IN ('', ?)";
 
+#[derive(Debug)]
 pub struct ScyllaService {
     pub client: Session,
     pub prepared_statements: HashMap<String, PreparedStatement>,
