@@ -21,7 +21,7 @@ pub fn create_sample_node() -> NodeModel {
     let relates_to = Some("123456".to_string());
     let name = "Example Node".to_string();
     let ingestion_id = "ABC123".to_string();
-    let url = "https://example.com".to_string();
+    let path = "https://example.com".to_string();
     let node_type = "Page".to_string();
     let tags = Some(vec![
         ("tag1".to_string(), "value1".to_string()),
@@ -35,7 +35,7 @@ pub fn create_sample_node() -> NodeModel {
         relates_to,
         name,
         ingestion_id,
-        url,
+        path,
         node_type,
         tags,
     }
@@ -54,7 +54,7 @@ pub fn create_node_vector(count: usize) -> Vec<NodeModel> {
         let relates_to = Some(format!("relates_to_{}", i));
         let name = format!("Node {}", i);
         let ingestion_id = format!("ID {}", i);
-        let url = format!("https://example.com/node/{}", i);
+        let path = format!("https://example.com/node/{}", i);
         let node_type = if i % 3 == 0 {
             "Type A".to_string()
         } else {
@@ -71,7 +71,7 @@ pub fn create_node_vector(count: usize) -> Vec<NodeModel> {
             relates_to,
             name,
             ingestion_id,
-            url,
+            path,
             node_type,
             tags,
         };

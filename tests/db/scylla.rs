@@ -34,7 +34,7 @@ async fn test_insert_nodes() {
     let service = ScyllaService::init(&config)
         .await
         .expect("Initialization database failed.");
-    let result = ScyllaService::insert_nodes(service, nodes).await;
+    let result = service.insert_nodes(nodes).await;
     assert!(result.is_ok());
     let session = ScyllaService::new_session("127.0.0.1:9042".to_string())
         .await

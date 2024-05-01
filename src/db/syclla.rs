@@ -3,7 +3,6 @@ use crate::config::config::DatabaseConfig;
 use eyre::{eyre, Result};
 use scylla::{frame::Compression, prepared_statement::PreparedStatement, Session, SessionBuilder};
 use std::{collections::HashMap, fs, path::Path, sync::Arc, time::Duration};
-use tokio::sync::Mutex;
 use tracing::{error, info};
 use uuid::Uuid;
 
@@ -16,7 +15,7 @@ const GET_NODE_BY_ID_DIRECTION_AND_RELATION_QUERY: &str = "SELECT id, direction,
 
 #[derive(Debug)]
 pub struct ScyllaService {
-    pub client: Session,
+    pub client: Arc<Session>,
     pub prepared_statements: HashMap<String, PreparedStatement>,
     pub concurrency_limit: usize,
 }
@@ -38,7 +37,7 @@ impl ScyllaService {
         let prepared_statements = ScyllaService::create_prepared_statements(&session).await?;
         info!("Scylla service: All prepared statements are created.");
         Ok(ScyllaService {
-            client: session,
+            client: Arc::new(session),
             prepared_statements,
             concurrency_limit: config.concurrency_limit,
         })
@@ -109,14 +108,34 @@ impl ScyllaService {
         Ok(prepared_statements)
     }
 
-    pub async fn insert_nodes(service: ScyllaService, nodes: Vec<NodeModel>) -> Result<()> {
-        let service = Arc::new(Mutex::new(service));
+    pub async fn insert_nodes(&self, nodes: Vec<NodeModel>) -> Result<()> {
         let mut handles = vec![];
+        let ps = self
+            .prepared_statements
+            .get("insert_node_query")
+            .ok_or_else(|| eyre!("insert node prepared statement not found"))?;
+
         for node in nodes {
-            let service = Arc::clone(&service);
+            let session = self.client.clone();
+            let ps = ps.clone();
+
             let handle = tokio::spawn(async move {
-                let service = service.lock().await;
-                service.insert_node(node).await
+                session
+                    .execute(
+                        &ps,
+                        (
+                            node.uuid,
+                            node.direction,
+                            node.relation,
+                            node.relates_to,
+                            node.name,
+                            node.ingestion_id,
+                            node.path,
+                            node.node_type,
+                            node.tags,
+                        ),
+                    )
+                    .await
             });
             handles.push(handle);
         }
@@ -124,11 +143,10 @@ impl ScyllaService {
         for handle in handles {
             let res = handle.await?;
             match res {
-                Ok(_) => info!("The record save successfully"),
-                Err(_) => error!("Error occured when record saved"),
+                Ok(_) => info!("Node inserted successfully"),
+                Err(err) => error!("Error inserting node: {}", err),
             }
         }
-
         Ok(())
     }
     pub async fn insert_node(&self, node: NodeModel) -> Result<()> {
@@ -147,7 +165,7 @@ impl ScyllaService {
                     node.relates_to,
                     node.name,
                     node.ingestion_id,
-                    node.url,
+                    node.path,
                     node.node_type,
                     node.tags,
                 ),

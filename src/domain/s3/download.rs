@@ -1,12 +1,13 @@
-use crate::domain::data::GraphData;
 use async_trait::async_trait;
 use eyre::Result;
 use s3::{creds::Credentials, Bucket, Region};
-use std::time::{Duration, Instant};
+use std::{fs::File, io::Read, time::{Duration, Instant}};
 use tracing::info;
 
+use super::data::GraphData;
+
 #[async_trait]
-pub trait BucketOps {
+pub trait BucketOps: Send + Sync {
     async fn get_object(&self, path: &str) -> Result<GraphData>;
 }
 
@@ -19,6 +20,9 @@ impl S3Bucket {
         Self { bucket }
     }
 }
+
+unsafe impl Send for S3Bucket {}
+unsafe impl Sync for S3Bucket {}
 
 #[async_trait]
 impl BucketOps for S3Bucket {
@@ -41,13 +45,21 @@ pub async fn read_graph_from_s3(
     bucket_ops: Box<dyn BucketOps>,
     object_key: &str,
 ) -> Result<GraphData> {
-    let now = Instant::now();
     let data = bucket_ops.get_object(object_key).await?;
-    let elapsed = now.elapsed();
-    info!("Read graph from S3. Took {:.2?}", elapsed);
-
     Ok(data)
 }
+
+pub async fn read_from_local_file(file_path: &str) -> Result<GraphData> {
+    let current_dir = std::env::current_dir()?;
+    let example_file_path = current_dir.join(format!("tests/data/{}", file_path));
+    let mut file = File::open(example_file_path)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    let data: GraphData = serde_json::from_slice(&buffer)?;
+    Ok(data)
+}
+
+
 
 #[cfg(test)]
 mod tests {
@@ -84,7 +96,6 @@ mod tests {
             async fn get_object(&self, path: &str) -> Result<GraphData> {
                 let current_dir = std::env::current_dir()?;
                 let example_file_path = current_dir.join(format!("tests/data/{}", path));
-                println!("{:?}", example_file_path);
                 let mut file = File::open(example_file_path)?;
                 let mut buffer = Vec::new();
                 file.read_to_end(&mut buffer)?;
