@@ -3,7 +3,10 @@ use std::net::TcpListener;
 use crate::{
     config::config::GeneralConfig,
     db::syclla::ScyllaService,
-    routes::{health_check::health_check, ingest::ingest},
+    routes::{
+        fetch_node::get_node_by_id, health_check::health_check, ingest::ingest,
+        traverse_node::traverse_node_by_id,
+    },
 };
 use actix_web::{dev::Server, web, App, HttpServer};
 use eyre::Result;
@@ -60,6 +63,8 @@ impl Application {
                 .wrap(TracingLogger::default())
                 .service(health_check)
                 .service(ingest)
+                .service(get_node_by_id)
+                .service(traverse_node_by_id)
                 .app_data(state.clone())
         })
         .listen(listener)?

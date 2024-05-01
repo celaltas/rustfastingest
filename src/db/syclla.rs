@@ -1,15 +1,18 @@
 use super::model::{NodeModel, RelationModel};
 use crate::config::config::DatabaseConfig;
 use eyre::{eyre, Result};
-use scylla::{frame::Compression, prepared_statement::PreparedStatement, Session, SessionBuilder};
+use scylla::{
+    frame::Compression, prepared_statement::PreparedStatement,
+    transport::query_result::SingleRowTypedError, Session, SessionBuilder,
+};
 use std::{collections::HashMap, fs, path::Path, sync::Arc, time::Duration};
 use tracing::{error, info};
 use uuid::Uuid;
 
 const INSERT_NODE_QUERY: &str = "INSERT INTO graph.nodes (id, direction, relation, relates_to, name, ingestion_id, url, item_type, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-const GET_NODE_BY_ID_QUERY: &str = "SELECT id, name, item_type, url, ingestion_id FROM graph.nodes WHERE id = ? AND direction = '' AND relation = ''";
-const GET_NODE_BY_ID_WITH_TAGS_QUERY: &str = "SELECT id, direction, relation, relates_to, name, ingestion_id, url, item_type, tags FROM graph.nodes WHERE id = ? AND direction = '' AND relation = ''";
-const GET_NODE_BY_ID_WITH_RELATIONS_QUERY: &str = "SELECT id, direction, relation, relates_to, name, ingestion_id, url, item_type, tags FROM graph.nodes WHERE id = ?";
+const GET_NODE_BY_ID: &str = "SELECT id, name, item_type, url, ingestion_id FROM graph.nodes WHERE id = ? AND direction = '' AND relation = ''";
+const GET_NODE_BY_ID_WITH_TAGS: &str = "SELECT id, direction, relation, relates_to, name, ingestion_id, url, item_type, tags FROM graph.nodes WHERE id = ? AND direction = '' AND relation = ''";
+const GET_NODE_BY_ID_WITH_ALL: &str = "SELECT id, direction, relation, relates_to, name, ingestion_id, url, item_type, tags FROM graph.nodes WHERE id = ?";
 const GET_NODE_BY_ID_AND_DIRECTION_QUERY: &str = "SELECT id, direction, relation, relates_to, name, item_type FROM graph.nodes WHERE id = ? AND direction IN ('', ?)";
 const GET_NODE_BY_ID_DIRECTION_AND_RELATION_QUERY: &str = "SELECT id, direction, relation, relates_to, name, item_type FROM graph.nodes WHERE id = ? AND direction IN ('', ?) AND relation IN ('', ?)";
 
@@ -47,7 +50,6 @@ impl ScyllaService {
     where
         P: AsRef<Path>,
     {
-        println!("Reading schema file: {}", schema_path.as_ref().display());
         let schema = fs::read_to_string(schema_path)
             .map_err(|err| eyre!("Failed to read schema file: {}", err))?;
         let queries: Vec<String> = schema
@@ -176,14 +178,35 @@ impl ScyllaService {
 
     pub async fn get_node_by_id(&self, id: &str) -> Result<NodeModel> {
         let uuid = Uuid::parse_str(id)?;
-        let res = self
-            .client
-            .query(GET_NODE_BY_ID_WITH_RELATIONS_QUERY, (uuid,))
-            .await?;
+        let res = self.client.query(GET_NODE_BY_ID_WITH_ALL, (uuid,)).await?;
         let node = res
             .single_row_typed::<NodeModel>()
             .map_err(|err| eyre!("Node not found: {}", err));
         node
+    }
+
+    pub async fn get_node(
+        &self,
+        uuid: Uuid,
+        include_tags: bool,
+        include_relations: bool,
+    ) -> Result<Option<NodeModel>> {
+        let query = if include_relations {
+            GET_NODE_BY_ID_WITH_ALL
+        } else if include_tags {
+            GET_NODE_BY_ID_WITH_TAGS
+        } else {
+            GET_NODE_BY_ID
+        };
+        let res = self.client.query(query, (uuid,)).await?;
+        let node = match res.single_row_typed::<NodeModel>() {
+            Ok(node) => Some(node),
+            Err(err) => match err {
+                SingleRowTypedError::BadNumberOfRows(_) => None,
+                _ => return Err(eyre!("ScyllaDB query failed: {}", err)),
+            },
+        };
+        Ok(node)
     }
 
     pub async fn get_node_relations_traversal(

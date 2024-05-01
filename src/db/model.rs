@@ -1,4 +1,5 @@
 use crate::domain::{
+    node::Node,
     relation::Relation,
     s3::data::{RawNode, RawTag},
 };
@@ -66,6 +67,20 @@ pub struct NodeModel {
     pub path: String,
     pub node_type: String,
     pub tags: Option<Vec<(String, String)>>,
+}
+
+impl From<NodeModel> for Node {
+    fn from(node_model: NodeModel) -> Self {
+        Node {
+            uuid: node_model.uuid,
+            ingestion_id: node_model.ingestion_id,
+            name: node_model.name,
+            path: node_model.path,
+            node_type: node_model.node_type,
+            tags: node_model.tags.unwrap_or_default(),
+            relations: vec![],
+        }
+    }
 }
 
 impl NodeModel {

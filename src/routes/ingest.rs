@@ -1,7 +1,7 @@
 use crate::application::AppState;
 use crate::db::model::process_nodes;
 use crate::domain::relation::process_relations;
-use crate::domain::s3::download::{create_bucket_ops, read_from_local_file, read_graph_from_s3};
+use crate::domain::s3::download::read_from_local_file;
 use actix_web::{
     post,
     web::{self, Data},
@@ -9,12 +9,6 @@ use actix_web::{
 };
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
-
-struct FileProcessingResult {
-    ingestion_id: String,
-    file_name: String,
-    success: bool,
-}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct IngestionRequest {
@@ -48,10 +42,10 @@ async fn ingest(
     for handle in handles {
         match handle.await {
             Ok(res) => match res {
-                Ok(_) => println!("The record save successfully"),
-                Err(err) => println!("Error occured when record saved: {}", err),
+                Ok(_) => info!("The record save successfully"),
+                Err(err) => error!("Error occured when record saved: {}", err),
             },
-            Err(err) => println!("Error joining task: {}", err),
+            Err(err) => error!("Error joining task: {}", err),
         }
     }
     Ok(HttpResponse::Ok().json(r#"{ "status": "OK"}"#))

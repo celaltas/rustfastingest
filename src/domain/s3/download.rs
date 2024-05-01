@@ -1,7 +1,11 @@
 use async_trait::async_trait;
 use eyre::Result;
 use s3::{creds::Credentials, Bucket, Region};
-use std::{fs::File, io::Read, time::{Duration, Instant}};
+use std::{
+    fs::File,
+    io::Read,
+    time::{Duration, Instant},
+};
 use tracing::info;
 
 use super::data::GraphData;
@@ -58,8 +62,6 @@ pub async fn read_from_local_file(file_path: &str) -> Result<GraphData> {
     let data: GraphData = serde_json::from_slice(&buffer)?;
     Ok(data)
 }
-
-
 
 #[cfg(test)]
 mod tests {
