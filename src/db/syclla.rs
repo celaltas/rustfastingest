@@ -13,8 +13,8 @@ const INSERT_NODE_QUERY: &str = "INSERT INTO graph.nodes (id, direction, relatio
 const GET_NODE_BY_ID: &str = "SELECT id, name, item_type, url, ingestion_id FROM graph.nodes WHERE id = ? AND direction = '' AND relation = ''";
 const GET_NODE_BY_ID_WITH_TAGS: &str = "SELECT id, direction, relation, relates_to, name, ingestion_id, url, item_type, tags FROM graph.nodes WHERE id = ? AND direction = '' AND relation = ''";
 const GET_NODE_BY_ID_WITH_ALL: &str = "SELECT id, direction, relation, relates_to, name, ingestion_id, url, item_type, tags FROM graph.nodes WHERE id = ?";
-const GET_NODE_BY_ID_AND_DIRECTION_QUERY: &str = "SELECT id, direction, relation, relates_to, name, item_type FROM graph.nodes WHERE id = ? AND direction IN ('', ?)";
-const GET_NODE_BY_ID_DIRECTION_AND_RELATION_QUERY: &str = "SELECT id, direction, relation, relates_to, name, item_type FROM graph.nodes WHERE id = ? AND direction IN ('', ?) AND relation IN ('', ?)";
+const GET_NODE_BY_ID_AND_DIRECTION: &str = "SELECT id, direction, relation, relates_to, name, item_type FROM graph.nodes WHERE id = ? AND direction IN ('', ?)";
+const GET_NODE_BY_ID_DIRECTION_AND_RELATION: &str = "SELECT id, direction, relation, relates_to, name, item_type FROM graph.nodes WHERE id = ? AND direction IN ('', ?) AND relation IN ('', ?)";
 
 #[derive(Debug)]
 pub struct ScyllaService {
@@ -88,20 +88,17 @@ impl ScyllaService {
             insert_node_prepared_statement,
         );
 
-        let get_node_prepared_statement =
-            session.prepare(GET_NODE_BY_ID_AND_DIRECTION_QUERY).await?;
+        let get_node_prepared_statement = session.prepare(GET_NODE_BY_ID_AND_DIRECTION).await?;
         prepared_statements.insert(
-            "GET_NODE_BY_ID_AND_DIRECTION_QUERY"
-                .to_owned()
-                .to_lowercase(),
+            "GET_NODE_BY_ID_AND_DIRECTION".to_owned().to_lowercase(),
             get_node_prepared_statement,
         );
 
         let get_node_direction_and_relation_prepared_statement = session
-            .prepare(GET_NODE_BY_ID_DIRECTION_AND_RELATION_QUERY)
+            .prepare(GET_NODE_BY_ID_DIRECTION_AND_RELATION)
             .await?;
         prepared_statements.insert(
-            "GET_NODE_BY_ID_DIRECTION_AND_RELATION_QUERY"
+            "GET_NODE_BY_ID_DIRECTION_AND_RELATION"
                 .to_owned()
                 .to_lowercase(),
             get_node_direction_and_relation_prepared_statement,
@@ -209,12 +206,12 @@ impl ScyllaService {
         Ok(node)
     }
 
-    pub async fn get_node_relations_traversal(
+    pub async fn get_node_traversal(
         &self,
-        id: &str,
-        direction: &str,
-        relation_type: &Option<String>,
-    ) -> Result<Vec<RelationModel>> {
+        uuid: Uuid,
+        direction: String,
+        relation_type: Option<String>,
+    ) -> Result<Option<Vec<RelationModel>>> {
         let mut rels = vec![];
 
         let result = match relation_type {
@@ -222,19 +219,19 @@ impl ScyllaService {
                 let ps = self
                     .prepared_statements
                     .get(
-                        "GET_NODE_BY_ID_DIRECTION_AND_RELATION_QUERY"
+                        "GET_NODE_BY_ID_DIRECTION_AND_RELATION"
                             .to_lowercase()
                             .as_str(),
                     )
                     .ok_or_else(|| eyre!("insert node prepared statement not found"))?;
-                self.client.execute(&ps, (id, direction, rel)).await?
+                self.client.execute(&ps, (uuid, direction, rel)).await?
             }
             None => {
                 let ps = self
                     .prepared_statements
-                    .get("GET_NODE_BY_ID_AND_DIRECTION_QUERY".to_lowercase().as_str())
+                    .get("GET_NODE_BY_ID_AND_DIRECTION".to_lowercase().as_str())
                     .ok_or_else(|| eyre!("insert node prepared statement not found"))?;
-                self.client.execute(&ps, (id, direction)).await?
+                self.client.execute(&ps, (uuid, direction)).await?
             }
         };
 
@@ -245,7 +242,11 @@ impl ScyllaService {
             }
         }
 
-        Ok(rels)
+        if rels.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(rels))
+        }
     }
 }
 

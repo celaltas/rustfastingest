@@ -5,7 +5,6 @@ use actix_web::{
     web::{self, Data},
     Error, HttpResponse, Result,
 };
-use scylla::transport::query_result::SingleRowTypedError;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

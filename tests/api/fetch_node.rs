@@ -13,10 +13,7 @@ async fn test_get_node_by_id_non_exist() {
         .send()
         .await
         .expect("Failed to execute request.");
-    assert_eq!(
-        response.status(),
-        reqwest::StatusCode::NO_CONTENT
-    );
+    assert_eq!(response.status(), reqwest::StatusCode::NO_CONTENT);
 }
 
 #[actix_rt::test]
