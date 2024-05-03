@@ -124,7 +124,6 @@ impl ScyllaService {
                         &ps,
                         (
                             node.uuid,
-                            node.direction,
                             node.direction.unwrap_or_default(),
                             node.relation.unwrap_or_default(),
                             node.relates_to.unwrap_or_default(),
