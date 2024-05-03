@@ -1,3 +1,4 @@
+use rand::Rng;
 use rustfastingest::{config::config::DatabaseConfig, db::model::NodeModel};
 use scylla::Session;
 use uuid::Uuid;
@@ -41,20 +42,32 @@ pub fn create_sample_node() -> NodeModel {
     }
 }
 
-pub fn create_node_vector(count: usize) -> Vec<NodeModel> {
-    let mut nodes = Vec::with_capacity(count);
+pub fn create_test_nodes(count: usize) -> Vec<NodeModel> {
+    let mut nodes: Vec<NodeModel> = Vec::with_capacity(count);
     for i in 0..count {
         let uuid = Uuid::new_v4();
-        let direction = if i % 2 == 0 {
-            Some("Outgoing".to_string())
+        let direction = if i == 0 {
+            Some("Out".to_string())
         } else {
-            Some("Incoming".to_string())
+            Some("In".to_string())
         };
-        let relation = Some(format!("relation_{}", i));
-        let relates_to = Some(format!("relates_to_{}", i));
+        let relation = if i == 0 {
+            Some("Parent".to_string())
+        } else {
+            Some("Child".to_string())
+        };
+        let relates_to = if i == 0 {
+            None
+        } else {
+            Some(nodes[i - 1].uuid.to_string())
+        };
         let name = format!("Node {}", i);
-        let ingestion_id = format!("ID {}", i);
-        let path = format!("https://example.com/node/{}", i);
+        let ingestion_id = "XXXA-1".to_string();
+        let path = if i == 0 {
+            "/".to_string()
+        } else {
+            format!("{}/Node_{}", nodes[i - 1].path, i)
+        };
         let node_type = if i % 3 == 0 {
             "Type A".to_string()
         } else {
@@ -78,6 +91,14 @@ pub fn create_node_vector(count: usize) -> Vec<NodeModel> {
         nodes.push(node);
     }
     nodes
+}
+
+pub fn get_random_node(nodes: &mut Vec<NodeModel>) -> Option<&mut NodeModel> {
+    if nodes.is_empty() {
+        return None;
+    }
+    let idx = rand::thread_rng().gen_range(0..nodes.len());
+    nodes.get_mut(idx)
 }
 
 pub async fn cleanup_database(session: &Session) -> eyre::Result<()> {

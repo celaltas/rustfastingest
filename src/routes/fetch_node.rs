@@ -50,8 +50,8 @@ async fn get_node_by_id_internal(
     query: NodeQuery,
     state: Data<AppState>,
 ) -> eyre::Result<Option<Node>> {
-    let tags = query.tags.unwrap_or(false);
-    let relations = query.relations.unwrap_or(false);
+    let tags = query.tags.unwrap_or(true);
+    let relations = query.relations.unwrap_or(true);
     let result = state.db.get_node(uuid, tags, relations).await?;
     match result {
         Some(node) => Ok(Some(Node::from(node))),

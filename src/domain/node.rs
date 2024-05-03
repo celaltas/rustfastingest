@@ -1,5 +1,4 @@
 use crate::db::model::RelationModel;
-
 use super::relation::Relation;
 use serde::Deserialize;
 use serde::Serialize;

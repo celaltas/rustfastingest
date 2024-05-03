@@ -1,5 +1,5 @@
-use crate::helpers::{
-    cleanup_database, create_node_vector, create_sample_node, create_test_database_config,
+use crate::db::helpers::{
+    cleanup_database, create_sample_node, create_test_database_config, create_test_nodes,
 };
 use rustfastingest::db::syclla::ScyllaService;
 
@@ -29,7 +29,7 @@ async fn test_get_node_by_id() {
 
 #[tokio::test]
 async fn test_insert_nodes() {
-    let nodes = create_node_vector(10);
+    let nodes = create_test_nodes(10);
     let config = create_test_database_config();
     let service = ScyllaService::init(&config)
         .await

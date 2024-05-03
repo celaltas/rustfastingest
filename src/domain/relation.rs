@@ -36,6 +36,14 @@ impl Relation {
             relates_to: relates_to.to_string(),
         }
     }
+    pub fn from(name: String, rel_type: String, relates_to: String, outbound: bool) -> Self {
+        Self {
+            rel_type,
+            target_name: name,
+            relates_to,
+            outbound,
+        }
+    }
 }
 
 pub fn process_relations(

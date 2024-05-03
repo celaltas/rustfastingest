@@ -125,13 +125,14 @@ impl ScyllaService {
                         (
                             node.uuid,
                             node.direction,
-                            node.relation,
-                            node.relates_to,
+                            node.direction.unwrap_or_default(),
+                            node.relation.unwrap_or_default(),
+                            node.relates_to.unwrap_or_default(),
                             node.name,
                             node.ingestion_id,
                             node.path,
                             node.node_type,
-                            node.tags,
+                            node.tags.unwrap_or_default(),
                         ),
                     )
                     .await

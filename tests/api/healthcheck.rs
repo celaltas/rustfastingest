@@ -1,4 +1,4 @@
-use crate::helpers::spawn_app;
+use crate::api::helpers::spawn_app;
 use reqwest::Client;
 
 #[actix_rt::test]
