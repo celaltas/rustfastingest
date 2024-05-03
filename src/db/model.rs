@@ -166,7 +166,7 @@ pub async fn process_nodes(
     let mut db_nodes: Vec<NodeModel> = Vec::new();
     let parent = None;
     let path: String = String::new();
-    flatten_nodes(
+    let _ = flatten_nodes(
         ingestion_id,
         &raw_nodes,
         &path,

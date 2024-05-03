@@ -1,10 +1,4 @@
-use crate::{
-    application::AppState,
-    domain::{
-        node::{Node, TraversalNode},
-        relation,
-    },
-};
+use crate::{application::AppState, domain::node::TraversalNode};
 use actix_web::{
     error::ErrorInternalServerError,
     get,

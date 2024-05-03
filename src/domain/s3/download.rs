@@ -1,14 +1,8 @@
+use super::data::GraphData;
 use async_trait::async_trait;
 use eyre::Result;
 use s3::{creds::Credentials, Bucket, Region};
-use std::{
-    fs::File,
-    io::Read,
-    time::{Duration, Instant},
-};
-use tracing::info;
-
-use super::data::GraphData;
+use std::{fs::File, io::Read, time::Duration};
 
 #[async_trait]
 pub trait BucketOps: Send + Sync {

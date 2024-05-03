@@ -1,5 +1,5 @@
-use crate::db::model::RelationModel;
 use super::relation::Relation;
+use crate::db::model::RelationModel;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
