@@ -21,9 +21,28 @@ pub struct DatabaseConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct ElasticSearchConfig {
+    pub url: String,
+    pub enabled: bool,
+    pub batch_size: usize,
+    pub num_shards: usize,
+    pub index: String,
+    pub user: Option<String>,
+    pub password: Option<String>,
+    pub concurrency_limit: usize,
+    pub refresh_interval: String,
+    pub source_enabled: bool,
+}
+
+
+
+
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct GeneralConfig {
     pub app: AppConfig,
     pub db: DatabaseConfig,
+    pub es: ElasticSearchConfig,
 }
 
 impl GeneralConfig {
@@ -33,10 +52,12 @@ impl GeneralConfig {
         let mut c = config::Config::new();
         c.merge(config::Environment::default())?;
         let app_config: AppConfig = c.clone().try_into()?;
-        let db_config: DatabaseConfig = c.try_into()?;
+        let db_config: DatabaseConfig = c.clone().try_into()?;
+        let es_config: ElasticSearchConfig = c.clone().try_into()?;
         let config = GeneralConfig {
             app: app_config,
             db: db_config,
+            es: es_config,
         };
         Ok(config)
     }
@@ -51,7 +72,9 @@ mod tests {
         let result = GeneralConfig::from_env();
         assert_eq!(result.is_ok(), true);
         let config = result.unwrap();
-        assert_eq!(config.app.host, "localhost");
+        println!("{:?}", config);
+        assert_eq!(config.es.refresh_interval, "20s".to_string());
+        assert_eq!(config.app.host, "127.0.0.1");
         assert_eq!(config.db.concurrency_limit, 10);
     }
 }
