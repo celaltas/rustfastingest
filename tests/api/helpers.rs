@@ -1,5 +1,6 @@
 use rustfastingest::{
     application::Application, config::config::GeneralConfig, db::syclla::ScyllaService,
+    routes::traverse_node::TraversalNodeQuery,
 };
 
 pub struct TestApp {
@@ -24,4 +25,14 @@ pub async fn spawn_app() -> eyre::Result<TestApp> {
         address,
         db: service,
     })
+}
+
+pub fn create_traversal_query() -> String {
+    let traversal_node_query = TraversalNodeQuery {
+        direction: "In".to_string(),
+        relation_type: Some("Child".to_string()),
+        max_depth: 2,
+    };
+    let query = traversal_node_query.convert_to_query_parameter();
+    query
 }

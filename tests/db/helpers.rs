@@ -93,12 +93,12 @@ pub fn create_test_nodes(count: usize) -> Vec<NodeModel> {
     nodes
 }
 
-pub fn get_random_node(nodes: &mut Vec<NodeModel>) -> Option<&mut NodeModel> {
+pub fn get_random_node(nodes: &Vec<NodeModel>) -> Option<&NodeModel> {
     if nodes.is_empty() {
         return None;
     }
     let idx = rand::thread_rng().gen_range(0..nodes.len());
-    nodes.get_mut(idx)
+    nodes.get(idx)
 }
 
 pub async fn cleanup_database(session: &Session) -> eyre::Result<()> {

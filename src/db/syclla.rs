@@ -211,8 +211,7 @@ impl ScyllaService {
         uuid: Uuid,
         direction: String,
         relation_type: Option<String>,
-    ) -> Result<Option<Vec<RelationModel>>> {
-        let mut rels = vec![];
+    ) -> Result<Option<RelationModel>> {
 
         let result = match relation_type {
             Some(rel) => {
@@ -235,18 +234,14 @@ impl ScyllaService {
             }
         };
 
-        if let Some(rows) = result.rows {
-            for r in rows {
-                let node = r.into_typed::<RelationModel>()?;
-                rels.push(node);
-            }
-        }
-
-        if rels.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(rels))
-        }
+        let relation = match result.single_row_typed::<RelationModel>() {
+            Ok(relation) => Some(relation),
+            Err(err) => match err {
+                SingleRowTypedError::BadNumberOfRows(_) => None,
+                _ => return Err(eyre!("ScyllaDB query failed: {}", err)),
+            },
+        };
+        Ok(relation)
     }
 }
 

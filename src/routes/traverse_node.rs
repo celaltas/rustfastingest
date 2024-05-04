@@ -90,6 +90,14 @@ fn traverse_node_by_id_internal<'a>(
     state: Data<AppState>,
     depth: usize,
 ) -> BoxFuture<'a, Result<Option<TraversalNode>>> {
+
+    println!("depth: {}", depth);
+    println!("query: {:?}", query);
+    println!("node_id: {:?}", node_id);
+    println!("***********************************");
+
+
+
     async move {
         let direction = query.direction.clone();
         let relation_type = query.relation_type.clone();
@@ -98,8 +106,8 @@ fn traverse_node_by_id_internal<'a>(
             .get_node_traversal(node_id, direction, relation_type)
             .await?;
         match result {
-            Some(relations) => {
-                let mut node = TraversalNode::from(relations, query.max_depth);
+            Some(relation) => {
+                let mut node = TraversalNode::from(relation, query.max_depth);
                 if depth < query.max_depth && node.relation_ids.len() > 0 {
                     let mut handles = vec![];
                     for relation_id in node.relation_ids.iter() {

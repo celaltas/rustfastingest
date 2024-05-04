@@ -10,12 +10,9 @@ async fn test_get_node_by_id() {
     let app = spawn_app().await.expect("test app initialization failed!");
     let client = Client::new();
     let query = "tags=true&relations=true";
-    let mut nodes = create_test_nodes(10);
-    let node = get_random_node(&mut nodes).unwrap();
-    node.relation = None;
-    node.direction = None;
+    let nodes = create_test_nodes(10);
+    let node = get_random_node(&nodes).unwrap();
     let node_id = node.uuid.to_owned();
-    println!("record: {} with id={}", node.name, node_id);
     let _ = app
         .db
         .insert_nodes(nodes)

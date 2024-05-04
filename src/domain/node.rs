@@ -59,15 +59,14 @@ impl TraversalNode {
         }
     }
 
-    pub fn from(relations: Vec<RelationModel>, depth: usize) -> TraversalNode {
-        let n = &relations[0];
-        let mut node =
-            TraversalNode::new(n.uuid.clone(), depth, n.name.clone(), n.node_type.clone());
-        let mut ids = vec![];
-        for r in &relations[1..] {
-            ids.push(r.relates_to.clone().unwrap());
-        }
-        node.relation_ids = ids;
+    pub fn from(relation: RelationModel, depth: usize) -> TraversalNode {
+        let mut node = TraversalNode::new(
+            relation.uuid.clone(),
+            depth,
+            relation.name.clone(),
+            relation.node_type.clone(),
+        );
+        node.relation_ids.push(relation.relates_to.clone().unwrap());
         node
     }
 }
