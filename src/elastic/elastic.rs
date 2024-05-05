@@ -1,14 +1,16 @@
+use crate::config::config::ElasticSearchConfig;
 use elasticsearch::{
     http::transport::{SingleNodeConnectionPool, TransportBuilder},
     indices::{IndicesCreateParts, IndicesDeleteParts, IndicesExistsParts},
-    Elasticsearch,
+    BulkOperation, BulkParts, Elasticsearch,
 };
 use eyre::{eyre, Result};
 use serde_json::json;
+use serde_json::Value;
 use std::sync::Arc;
 use tracing::{error, info};
 
-use crate::config::config::ElasticSearchConfig;
+use super::model::IndexNode;
 
 pub struct IndexConfig {
     name: String,
@@ -21,6 +23,7 @@ pub struct ElasticService {
     num_shards: usize,
     refresh_interval: String,
     source_enabled: bool,
+    batch_size: usize,
 }
 
 impl ElasticService {
@@ -33,8 +36,9 @@ impl ElasticService {
         Ok(Self {
             client: Arc::new(client),
             num_shards: 1,
-            refresh_interval: "1s".to_string(),
+            refresh_interval: "20s".to_string(),
             source_enabled: true,
+            batch_size: 1000,
         })
     }
 
@@ -48,17 +52,21 @@ impl ElasticService {
 
     pub async fn initialize(config: &ElasticSearchConfig) -> Result<Self> {
         let url = config.url.to_owned();
-        let instance = Self::new(url).await?;
+        let mut instance = Self::new(url).await?;
         let indexes = instance.get_indexes();
         info!("Initializing ElasticSearch instance");
         instance.configure(indexes).await?;
+        instance.num_shards = config.num_shards;
+        instance.refresh_interval = config.refresh_interval.to_owned();
+        instance.source_enabled = config.source_enabled;
+        instance.batch_size = config.batch_size;
         Ok(instance)
     }
 
     fn get_indexes(&self) -> Vec<IndexConfig> {
         let mut indexes = vec![];
         indexes.push(IndexConfig {
-            name: "NodeIndex".to_string(),
+            name: "graph".to_string(),
             mapping: self.get_node_index_mapping(),
             overwrite: false,
         });
@@ -80,7 +88,8 @@ impl ElasticService {
             .await?;
         if response.status_code() == 404 {
             info!("Index '{}' does not exist, creating it", index_name);
-            self.client
+            let res = self
+                .client
                 .indices()
                 .create(IndicesCreateParts::Index(index_name))
                 .body(mapping)
@@ -161,4 +170,48 @@ impl ElasticService {
         });
         mapping
     }
+
+    pub async fn index_nodes(&self, nodes: Vec<IndexNode>, index_name: &str) -> Result<()> {
+        let mut handles = vec![];
+        for batch in nodes.chunks(self.batch_size) {
+            let client = self.client.clone();
+            let batch = batch.to_vec();
+            let index_name = index_name.to_string();
+            let handle = tokio::spawn(async move { index_batch(client, batch, index_name).await });
+            handles.push(handle);
+        }
+        for handle in handles {
+            let res = handle.await?;
+            match res {
+                Ok(_) => info!("Node indexed successfully"),
+                Err(err) => error!("Error indexing node: {}", err),
+            }
+        }
+        Ok(())
+    }
+}
+
+async fn index_batch(
+    client: Arc<Elasticsearch>,
+    nodes: Vec<IndexNode>,
+    index_name: String,
+) -> Result<()> {
+    info!("Indexing batch of {} nodes for {}", nodes.len(), index_name);
+    let body: Vec<BulkOperation<IndexNode>> = nodes
+        .into_iter()
+        .map(|node| {
+            let id = node.uuid.to_string();
+            BulkOperation::index(node).id(id).into()
+        })
+        .collect();
+    let response = client
+        .bulk(BulkParts::Index("graph"))
+        .body(body)
+        .send()
+        .await?;
+    let json: Value = response.json().await?;
+    if json["errors"].as_bool().unwrap_or(false) {
+        return Err(eyre!("Error indexing nodes"));
+    }
+    Ok(())
 }

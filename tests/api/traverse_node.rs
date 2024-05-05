@@ -1,4 +1,7 @@
-use crate::{api::helpers::{create_traversal_query, spawn_app}, db::helpers::{create_test_nodes, get_random_node}};
+use crate::{
+    api::helpers::{create_traversal_query, spawn_app},
+    db::helpers::{create_test_nodes, get_random_node},
+};
 use reqwest::Client;
 use rustfastingest::{domain::node::TraversalNode, routes::traverse_node::TraversalNodeQuery};
 

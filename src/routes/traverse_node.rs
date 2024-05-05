@@ -90,13 +90,10 @@ fn traverse_node_by_id_internal<'a>(
     state: Data<AppState>,
     depth: usize,
 ) -> BoxFuture<'a, Result<Option<TraversalNode>>> {
-
     println!("depth: {}", depth);
     println!("query: {:?}", query);
     println!("node_id: {:?}", node_id);
     println!("***********************************");
-
-
 
     async move {
         let direction = query.direction.clone();

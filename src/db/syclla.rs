@@ -212,7 +212,6 @@ impl ScyllaService {
         direction: String,
         relation_type: Option<String>,
     ) -> Result<Option<RelationModel>> {
-
         let result = match relation_type {
             Some(rel) => {
                 let ps = self

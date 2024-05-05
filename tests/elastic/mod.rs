@@ -1,2 +1,2 @@
 pub mod elastic;
-pub mod model;
+pub mod helpers;

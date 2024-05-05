@@ -34,10 +34,6 @@ pub struct ElasticSearchConfig {
     pub source_enabled: bool,
 }
 
-
-
-
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct GeneralConfig {
     pub app: AppConfig,
