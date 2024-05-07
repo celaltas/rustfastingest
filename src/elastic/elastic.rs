@@ -2,15 +2,16 @@ use crate::config::config::ElasticSearchConfig;
 use elasticsearch::{
     http::transport::{SingleNodeConnectionPool, TransportBuilder},
     indices::{IndicesCreateParts, IndicesDeleteParts, IndicesExistsParts},
-    BulkOperation, BulkParts, Elasticsearch,
+    BulkOperation, BulkParts, Elasticsearch, SearchParts,
 };
 use eyre::{eyre, Result};
-use serde_json::json;
 use serde_json::Value;
+use serde_json::{from_value, json};
 use std::sync::Arc;
 use tracing::{error, info};
+use uuid::Uuid;
 
-use super::model::IndexNode;
+use super::model::{IndexNode, SearchQueryParams};
 
 pub struct IndexConfig {
     name: String,
@@ -187,6 +188,48 @@ impl ElasticService {
                 Err(err) => error!("Error indexing node: {}", err),
             }
         }
+        Ok(())
+    }
+
+    pub async fn search(
+        &self,
+        query_params: SearchQueryParams,
+        index_name: &str,
+    ) -> Result<Vec<IndexNode>> {
+        let query = query_params.to_es_query();
+        println!("{:?}", query);
+        let response = self
+            .client
+            .search(SearchParts::Index(&[index_name]))
+            .body(query)
+            .send()
+            .await?;
+        let response_json: Value = response.error_for_status_code()?.json().await?;
+        let hits = match response_json.get("hits") {
+            Some(hits) => hits.get("hits"),
+            None => return Err(eyre!("hits field not found in response")),
+        }
+        .and_then(|hits| hits.as_array())
+        .ok_or_else(|| eyre!("hits field is not an array"))?;
+
+        let results: Vec<IndexNode> = hits
+            .iter()
+            .map(|hit| {
+                let source = hit["_source"].clone();
+                serde_json::from_value::<IndexNode>(source).unwrap()
+            })
+            .collect();
+
+        Ok(results)
+    }
+
+    pub async fn delete_all_record(&self, index_name: &str) -> Result<()> {
+        let _response = self
+            .client
+            .indices()
+            .delete(IndicesDeleteParts::Index(&[index_name]))
+            .send()
+            .await?;
         Ok(())
     }
 }
